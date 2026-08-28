@@ -178,10 +178,10 @@ graph LR
 
 ```mermaid
 graph TB
-    LLM[LLM Output<br/>HTML] --> BLEACH[bleach sanitizer<br/>allowlist-based]
-    BLEACH --> CSS[Style tag cleaning<br/>remove expression(), @import]
-    CSS --> STORE[Store sanitized_content<br/>in PostgreSQL]
-    STORE --> IFRAME[sandboxed iframe<br/>sandbox=allow-same-origin<br/>No scripts, No forms<br/>No navigation]
+    LLM["LLM Output<br/>HTML"] --> BLEACH["bleach sanitizer<br/>allowlist-based"]
+    BLEACH --> CSS["Style tag cleaning<br/>remove expression(), @import"]
+    CSS --> STORE["Store sanitized_content<br/>in PostgreSQL"]
+    STORE --> IFRAME["sandboxed iframe<br/>sandbox=allow-same-origin<br/>No scripts, No forms<br/>No navigation"]
 
     style BLEACH fill:#8b4513,color:#fff
     style IFRAME fill:#2d5a27,color:#fff
