@@ -1,0 +1,62 @@
+# Secrets — NEVER commit these
+.env
+*.key
+*.pem
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pytest_cache/
+dist/
+build/
+*.egg-info/
+.eggs/
+
+# Node / Frontend
+node_modules/
+dist/
+.next/
+out/
+.nuxt/
+.cache/
+.parcel-cache/
+*.tsbuildinfo
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# Docker
+docker-compose.override.yml
+
+# Transcripts (cloned during ingestion)
+ingestion/lennys-podcast-transcripts/
+
+# Database data (mounted volumes)
+postgres-data/

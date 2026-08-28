@@ -1,0 +1,104 @@
+services:
+  # ── PostgreSQL with pgvector ─────────────────────────────────────────────
+  db:
+    image: pgvector/pgvector:pg17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: lenny
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d lenny"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Backend API ──────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/lenny
+      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
+      OLLAMA_BASE_URL: "http://host.docker.internal:11434"
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2}
+      OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-3-5-haiku-20241022}
+      RETRIEVAL_TOP_K: ${RETRIEVAL_TOP_K:-8}
+      RETRIEVAL_SCORE_THRESHOLD: ${RETRIEVAL_SCORE_THRESHOLD:-0.5}
+      APP_ENV: ${APP_ENV:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      CORS_ORIGINS: '["http://localhost:5174","http://localhost:3000"]'
+    ports:
+      - "8081:8000"
+    volumes:
+      - ./ingestion:/app/ingestion
+    depends_on:
+      db:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import httpx; r=httpx.get('http://localhost:8000/health', timeout=5); exit(0 if r.status_code==200 else 1)\" 2>/dev/null || curl -f http://localhost:8000/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # ── Database migration runner ────────────────────────────────────────────
+  migrate:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/lenny
+    command: ["sh", "-c", "sleep 5 && alembic upgrade head"]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  # ── Frontend ─────────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      VITE_API_URL: ""
+      BACKEND_URL: "http://backend:8000"
+    ports:
+      - "5174:5173"
+    depends_on:
+      - backend
+
+  # ── Knowledge Base Auto-Ingestion ────────────────────────────────────────
+  ingestion:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    volumes:
+      - ./ingestion:/app/ingestion
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/lenny
+      OLLAMA_BASE_URL: "http://host.docker.internal:11434"
+      OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}
+    command: ["sh", "-c", "sleep 10 && python -m ingestion.index"]
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: "no"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  postgres_data:
