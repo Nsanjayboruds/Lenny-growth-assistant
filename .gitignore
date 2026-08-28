@@ -1,5 +1,4 @@
 # Secrets — NEVER commit these
-.env
 *.key
 *.pem
 
@@ -48,7 +47,6 @@ Thumbs.db
 *.swo
 
 # IDE
-.vscode/
 .idea/
 *.iml
 
@@ -60,3 +58,4 @@ ingestion/lennys-podcast-transcripts/
 
 # Database data (mounted volumes)
 postgres-data/
+config.bat
